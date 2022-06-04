@@ -28,7 +28,7 @@ def configuration():
     parser.add_argument('--image_size', type=int, default=(256, 256), help="input image size of neural network")
     parser.add_argument('--model_name', type=str, default="cat_dog_classification", help="select the model")
     parser.add_argument('--model_path', type=str, default=None, help="assign model path directly if you want")
-    parser.add_argument('--device', type=str, default="cpu", help="choose to use cpu or gpu")
+    parser.add_argument('--device', type=str, default="cuda:0", help="choose to use cpu or gpu")
     args = parser.parse_args()
     return args
 
