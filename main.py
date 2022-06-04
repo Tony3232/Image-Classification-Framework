@@ -116,7 +116,7 @@ if config.mode == "train":
     metric_test = model.evaluate(test_loader)
 
     logger.record_test_log(f"test result: " + f"accuracy={metric_test['accuracy']:.3f}, precision={metric_test['precision']:.3f}" \
-                           f"recall={metric_test['recall']:.3f}, f1={metric_test['f1']:.3f}, roc auc={metric_test['roc_auc']:.3f}")
+                           f"recall={metric_test['recall']:.3f}, f1={metric_test['f1']:.3f}")
 
 elif config.mode == "evaluate":
     model = CatDogPredictor(model_path=model_path,

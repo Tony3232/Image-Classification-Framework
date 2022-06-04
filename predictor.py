@@ -34,6 +34,7 @@ class CatDogPredictor(object):
         self.pretrained = pretrained
         self.image_size = image_size
         self.labels = labels
+        self.num_classes = len(labels)
         self.transform = transforms.Compose(
                                             [
                                              transforms.Resize((image_size,image_size)),
@@ -61,7 +62,7 @@ class CatDogPredictor(object):
         else:
             model = models.resnet18()
 
-        model.fc = nn.Linear(model.fc.in_features, 2)
+        model.fc = nn.Linear(model.fc.in_features, self.num_classes)
 
         if flag == "self-trained":
             model.load_state_dict(torch.load(path, map_location=self.device))
@@ -74,8 +75,12 @@ class CatDogPredictor(object):
                     weight_decay=0.0001, model_save_path="models/cat_dog_classifier.pth", 
                     is_write=True):
 
-        criterion = nn.CrossEntropyLoss()
+        average_mode = "binary" if self.num_classes == 2 else "macro"
 
+        print(f"average_mode: {average_mode}")
+        
+        criterion = nn.CrossEntropyLoss()
+        
         optimizer = optim.Adam(self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
         # train neural network
@@ -120,7 +125,7 @@ class CatDogPredictor(object):
                     y_true = np.array(y_true)
                     y_pred = np.array(y_pred)
                     y_score = np.array(y_score)
-                    metrics_train = self.compute_metrics(y_true, y_pred, average_mode="binary")
+                    metrics_train = self.compute_metrics(y_true, y_pred, average_mode=average_mode)
 
                     print(f"Epoch:[{epoch+1}/{num_epoch}, {i+1}]], loss:{running_loss/show_batch:.3f}, accuracy={metrics_train['accuracy']:.3f},", end=" ")
                     print(f"precision={metrics_train['precision']:.3f}, recall={metrics_train['recall']:.3f}, f1={metrics_train['f1']:.3f}")
@@ -142,8 +147,8 @@ class CatDogPredictor(object):
             if self.has_logger:
                 self.logger.record_val_log(f"[Validation] Epoch:[{epoch+1}/{num_epoch}], " + \
                                            f"accuracy={metrics_eval['accuracy']:.3f}, precision={metrics_eval['precision']:.3f}, " + \
-                                           f"recall={metrics_eval['recall']:.3f}, f1={metrics_eval['f1']:.3f}" + \
-                                           f"roc auc={metrics_eval['roc_auc']:.3f}")
+                                           f"recall={metrics_eval['recall']:.3f}, f1={metrics_eval['f1']:.3f}")
+                                           #f"roc auc={metrics_eval['roc_auc']:.3f}")
             if is_write:
                 self.visualize_metrics(mode="val", metrics=metrics_eval, epoch=epoch)
 
@@ -174,17 +179,21 @@ class CatDogPredictor(object):
 
     def compute_metrics(self, y_true, y_pred, y_score=None, average_mode='binary'):
         accuracy = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, zero_division=0)
-        recall = recall_score(y_true, y_pred, zero_division=0)
-        f1 = f1_score(y_true, y_pred, zero_division=0)
+        precision = precision_score(y_true, y_pred, average=average_mode, zero_division=0)
+        recall = recall_score(y_true, y_pred, average=average_mode, zero_division=0)
+        f1 = f1_score(y_true, y_pred, average=average_mode, zero_division=0)
 
         metrics = {"accuracy": accuracy,
                    "precision": precision,
                    "recall": recall,
                    "f1": f1}
-        
+        """
         if y_score is not None:
-            metrics["roc_auc"] = roc_auc_score(y_true, y_score)
+            if self.num_classes == 2:
+                metrics["roc_auc"] = roc_auc_score(y_true, y_score)
+            else:
+                metrics["roc_auc"] = roc_auc_score(y_true, y_score, average=average_mode, multi_class='ovo')
+        """
         
         return metrics
 
@@ -193,6 +202,8 @@ class CatDogPredictor(object):
         y_true = []
         y_pred = []
         y_score = []
+
+        average_mode = "binary" if self.num_classes == 2 else "macro"
         
         with torch.no_grad():
             for data in test_loader:
@@ -214,7 +225,7 @@ class CatDogPredictor(object):
         if show:
             print(f"----------------------------------------------------------")
             print(f"{mode} results:")
-            print(f"ROC AUC: {metrics['roc_auc']}")
+            #print(f"ROC AUC: {metrics['roc_auc']}")
             print(f"Accuracy: {metrics['accuracy']}")
             print(f"Precision: {metrics['precision']}")
             print(f"Recall: {metrics['recall']}")

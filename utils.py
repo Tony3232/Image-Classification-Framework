@@ -59,12 +59,16 @@ def load_data(data_root):
 
     label_dict = {}
 
-
+    
     for i in range(len(categories)):
         label_dict[i] = categories[i]
-        for j in range(1, 1001):
-            path = f"{data_root}/{categories[i]}/{j:04}.png"
-            data.append((path, i))
+        category_path = os.path.join(data_root, categories[i])
+        image_names = os.listdir(category_path)
+        num_images = len(image_names)
+        print(f"class {i} has {num_images} images")
+        for image_name in image_names:
+            image_path = os.path.join(category_path, image_name)
+            data.append((image_path, i))
 
     # shuffle data
     random.seed(0)
@@ -73,9 +77,16 @@ def load_data(data_root):
     return data, label_dict
 
 def split_train_test_data(data):
-    train = data[:1600]
-    val = data[1600:1800]
-    test = data[1800:]
+    n = len(data)
+    sep1 = int(0.8*n)
+    sep2 = int(0.9*n)
+    train = data[:sep1]
+    val = data[sep1:sep2]
+    test = data[sep2:]
+
+    print("train images: ", len(train))
+    print("validation images: ", len(val))
+    print("test images: ", len(test))
 
     return train, val, test
     
