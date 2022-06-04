@@ -1,7 +1,6 @@
 import os
 import yaml
 import random
-import logging
 import pandas as pd
 import torchvision.transforms as transforms
 
@@ -49,26 +48,29 @@ def save_config(config, config_path):
             'model_name': config.model_name,
             'device': config.device}
 
-    with open(config_path, 'w') as f:
+    with open(config_path, 'a') as f:
         yaml.dump(data, f, sort_keys=False, default_flow_style=False)
 
 
-def load_data():
+def load_data(data_root):
     data = []
 
-    for i in range(1, 1001):
-        path = f"dataset/cat/{i:04}.png"
-        data.append((path, 0))
-        
-    for i in range(1, 1001):
-        path = f"dataset/dog/{i:04}.png"
-        data.append((path, 1))
+    categories = os.listdir(data_root)
+
+    label_dict = {}
+
+
+    for i in range(len(categories)):
+        label_dict[i] = categories[i]
+        for j in range(1, 1001):
+            path = f"{data_root}/{categories[i]}/{j:04}.png"
+            data.append((path, i))
 
     # shuffle data
     random.seed(0)
     random.shuffle(data)
     
-    return data
+    return data, label_dict
 
 def split_train_test_data(data):
     train = data[:1600]
@@ -94,21 +96,3 @@ def get_transforms(image_size, mean, std):
          ])
 
     return transform_train, transform_test
-
-
-def get_logger(filename, verbosity=1, name=None):
-    # logger
-    level_dict = {0: logging.DEBUG, 1: logging.INFO, 2: logging.WARNING}
-
-    formatter = logging.Formatter(
-        "[%(asctime)s] %(message)s")
-
-    logger = logging.getLogger(name)
-    logger.setLevel(level_dict[verbosity])
-    
-    if not logger.handlers:
-        fh = logging.FileHandler(filename, "a")
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
-
-    return logger

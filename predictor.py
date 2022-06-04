@@ -9,11 +9,9 @@ import torchvision.transforms as transforms
 
 from PIL import Image
 from torchvision import models
-from torch.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
-
-from utils import get_logger
 
 torch.backends.cudnn.enabled = False
 
@@ -26,6 +24,7 @@ class CatDogPredictor(object):
                 labels={0: "cat", 1: "dog"},
                 exp_name="exp1",
                 log_dir="./exp/exp1/log/",
+                logger=None,
                 device="cuda:0" if torch.cuda.is_available() else "cpu",
                 pretrained=True):
         super(CatDogPredictor, self).__init__()
@@ -45,19 +44,22 @@ class CatDogPredictor(object):
         self.log_dir = log_dir
         self.exp_name = exp_name
         self.writer = SummaryWriter(log_dir=self.log_dir)
-        self.train_logger = get_logger(os.path.join(log_dir,f'{self.exp_name}_train.log'), name="train_logger")
-        self.val_logger = get_logger(os.path.join(log_dir,f'{self.exp_name}_val.log'), name="validation_logger")
-        self.test_logger = get_logger(os.path.join(log_dir,f'{self.exp_name}_test.log'), name="test_logger")
+        if logger:
+            self.logger = logger
+            self.has_logger = True
+        else:
+            self.has_logger = False
 
         self.model = self.load_model(path=self.path, flag=self.flag)
 
 
     def load_model(self, path="", flag="self-trained"):
         # flag: pretrained or self-trained or scratch
-        # wait for updating
 
-
-        model = models.resnet18()
+        if flag == "pretrained":
+            model = models.resnet18(pretrained=True)
+        else:
+            model = models.resnet18()
 
         model.fc = nn.Linear(model.fc.in_features, 2)
 
@@ -69,7 +71,7 @@ class CatDogPredictor(object):
 
 
     def train_model(self, train_loader, val_loader, learning_rate=0.01, num_epoch=3, show_batch=1,
-                    weight_decay=0.0001, model_save_path="models/siam3dunet.pth", 
+                    weight_decay=0.0001, model_save_path="models/cat_dog_classifier.pth", 
                     is_write=True):
 
         criterion = nn.CrossEntropyLoss()
@@ -80,7 +82,9 @@ class CatDogPredictor(object):
         best_f1 = 0
         y_true, y_pred, y_score = [], [], []
 
-        self.train_logger.info('start training!')
+        if self.has_logger:
+            self.logger.record_train_log("start training!")
+
         for epoch in range(num_epoch):
             self.model.train()
             
@@ -120,9 +124,11 @@ class CatDogPredictor(object):
 
                     print(f"Epoch:[{epoch+1}/{num_epoch}, {i+1}]], loss:{running_loss/show_batch:.3f}, accuracy={metrics_train['accuracy']:.3f},", end=" ")
                     print(f"precision={metrics_train['precision']:.3f}, recall={metrics_train['recall']:.3f}, f1={metrics_train['f1']:.3f}")
-                    self.train_logger.info(f"[Train] Epoch:[{epoch+1}/{num_epoch}], total loss:{running_loss/show_batch:.3f}, " + \
+                    if self.has_logger:
+                        self.logger.record_train_log(f"[Train] Epoch:[{epoch+1}/{num_epoch}, {i+1}], total loss:{running_loss/show_batch:.3f}, " + \
                         f"accuracy={metrics_train['accuracy']:.3f}, precision={metrics_train['precision']:.3f}, " + \
                         f"recall={metrics_train['recall']:.3f}, f1={metrics_train['f1']:.3f}")
+
                     if is_write:
                         self.visualize_metrics(mode="train", metrics=metrics_train, epoch=epoch)
 
@@ -133,10 +139,11 @@ class CatDogPredictor(object):
 
             # evaluate
             metrics_eval = self.evaluate(val_loader, show=True, mode="val")
-            self.val_logger.info(f"[Validation] Epoch:[{epoch+1}/{num_epoch}], " + \
-                                 f"accuracy={metrics_eval['accuracy']:.3f}, precision={metrics_eval['precision']:.3f}, " + \
-                                 f"recall={metrics_eval['recall']:.3f}, f1={metrics_eval['f1']:.3f}" + \
-                                 f"roc auc={metrics_eval['roc_auc']:.3f}")
+            if self.has_logger:
+                self.logger.record_val_log(f"[Validation] Epoch:[{epoch+1}/{num_epoch}], " + \
+                                           f"accuracy={metrics_eval['accuracy']:.3f}, precision={metrics_eval['precision']:.3f}, " + \
+                                           f"recall={metrics_eval['recall']:.3f}, f1={metrics_eval['f1']:.3f}" + \
+                                           f"roc auc={metrics_eval['roc_auc']:.3f}")
             if is_write:
                 self.visualize_metrics(mode="val", metrics=metrics_eval, epoch=epoch)
 
@@ -146,10 +153,9 @@ class CatDogPredictor(object):
                 print(f"new best f1: {metrics_eval['f1']}")
                 print("model saved")
 
-
-        self.val_logger.info(f"best validation score: f1={best_f1:.3f}")
-
-        self.train_logger.info('finish training!')
+        if self.has_logger:
+            self.logger.record_val_log(f"best validation score: f1={best_f1:.3f}")
+            self.logger.record_train_log("finish training!")
 
         return self.model
 

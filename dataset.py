@@ -2,7 +2,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 class CatDogDataset(Dataset):
-    def __init__(self, data, transform = None):
+    def __init__(self, data, transform=None):
         self.data = data 
         self.transform = transform
         
