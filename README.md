@@ -11,7 +11,7 @@ Other dependencies are listed in requirements.txt. You can install them with the
 # Datasets
 Dataset link: https://www.kaggle.com/datasets/googolples/cat-dog-images
 
-If you want to run this code on custom dataset, you just need to change the data path at [load_data](https://github.com/Tony3232/Image-Classification-Framework/blob/main/utils.py#:~:text=def-,load_data,-()%3A) function.
+If you want to run this code on custom dataset, you just need to set the root of your data in --data_root and organize your data like the example dataset.
 
 
 # Run
