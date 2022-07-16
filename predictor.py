@@ -23,7 +23,7 @@ class CatDogPredictor(object):
                 image_size=(256, 256),
                 labels={0: "cat", 1: "dog"},
                 exp_name="exp1",
-                log_dir="./exp/exp1/log/",
+                log_dir=None,
                 logger=None,
                 device="cuda:0" if torch.cuda.is_available() else "cpu",
                 pretrained=True):
@@ -37,12 +37,12 @@ class CatDogPredictor(object):
         self.num_classes = len(labels)
         self.transform = transforms.Compose(
                                             [
-                                             transforms.Resize((image_size,image_size)),
+                                             transforms.Resize(image_size),
                                              transforms.ToTensor(),
                                              transforms.Normalize((0.485, 0.456, 0.406),
                                                                   (0.229, 0.224, 0.225))
                                              ])
-        self.log_dir = log_dir
+        self.log_dir = f"./exp/{exp_name}/log/"
         self.exp_name = exp_name
         self.writer = SummaryWriter(log_dir=self.log_dir)
         if logger:
