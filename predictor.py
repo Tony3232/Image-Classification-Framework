@@ -25,13 +25,11 @@ class CatDogPredictor(object):
                 exp_name="exp1",
                 log_dir=None,
                 logger=None,
-                device="cuda:0" if torch.cuda.is_available() else "cpu",
-                pretrained=True):
+                device="cuda:0" if torch.cuda.is_available() else "cpu"):
         super(CatDogPredictor, self).__init__()
         self.path = model_path
         self.flag = flag
         self.device = torch.device(device)
-        self.pretrained = pretrained
         self.image_size = image_size
         self.labels = labels
         self.num_classes = len(labels)
